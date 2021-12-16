@@ -13,6 +13,8 @@ import PySimpleGUI as sg
 import boxSelectChatbox as bsc
 import multiprocessing as mp
 # import TesseractRead as tr
+import gameOverlay as go
+import ocrTranslator as ot
 
 
 gui_queue = None
@@ -20,7 +22,7 @@ ocr_queue = None
 class MainUserInterface:
 
     overlayOpen = False
-    defaultLang = ''
+    defaultLang = 'eng'
     additionalLangs = ''
     targetLanguage = 'english'
     startedOcr = False
@@ -99,7 +101,8 @@ class MainUserInterface:
                 if self.chatLocation == None:
                     self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
                 # mmg.begin(gui_queue, ocr_queue,self.chatLocation)
-                tr.begin(gui_queue, ocr_queue,self.chatLocation)
+                # tr.begin(gui_queue, ocr_queue,self.chatLocation)
+                ot.begin(gui_queue, ocr_queue,self.chatLocation,self.defaultLang)
                 self.window['Start'].update(disabled=True)
                 self.startedOcr = True
 
@@ -110,7 +113,7 @@ class MainUserInterface:
                 self.window['-OUTPUT-'].update("Switched output to GameOverlay")
                 self.overlayOpen = True
                 self.window['Launch Game Overlay'].update(disabled=True)
-                self.gameOverlayProc = mp.Process(target=mmg.GraphicalUserInterface, args=(gui_queue,ocr_queue))
+                self.gameOverlayProc = mp.Process(target=go.GameOverlayInterface, args=(gui_queue,ocr_queue))
                 self.gameOverlayProc.start()
                 # enable after process dead and re enable button
 

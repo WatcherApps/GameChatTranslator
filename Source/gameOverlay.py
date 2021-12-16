@@ -13,7 +13,8 @@
 # https://realpython.com/pysimplegui-python/
 import PySimpleGUI as sg
 # import time
-import torch.multiprocessing as mp
+# import torch.multiprocessing as mp
+import multiprocessing as mp
 # from deep_translator import GoogleTranslator
 # import mss
 # gui_queue = None

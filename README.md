@@ -11,3 +11,5 @@ pip install Pillow
 pip install mss
 
 pip install PySimpleGUI
+
+pip install pytesseract

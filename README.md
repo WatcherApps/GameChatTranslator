@@ -26,3 +26,5 @@ the newest tesseract 5.0 exe from this place was having issues getting additiona
 looks like we need to manually get them.
 I'll grab the ones we will support first i guess.
 English will handle most of the work for video games, this is just for new characters.
+
+https://tesseract-ocr.github.io/tessdoc/Data-Files

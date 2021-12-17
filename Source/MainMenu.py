@@ -15,6 +15,7 @@ import multiprocessing as mp
 # import TesseractRead as tr
 import gameOverlay as go
 import ocrTranslator as ot
+from queue import Empty
 
 
 gui_queue = None
@@ -22,19 +23,29 @@ ocr_queue = None
 overlayQueue = None
 
 class MainUserInterface:
-    #this overlayOpen is used to swap printing from main window to game overlay.
-    overlayOpen = False
-    additionalLangs = ''
-    targetLanguage = 'english'
-    startedOcr = False
+    # #this overlayOpen is used to swap printing from main window to game overlay.
+    # overlayOpen = False
+    # additionalLangs = ''
+    # targetLanguage = 'english'
+    # startedOcr = False
 
-    ocrProcess = None
-    gameOverlayProc = None
+    # ocrProcess = None
+    # gameOverlayProc = None
 
     def __init__(self):
         global gui_queue
         global ocr_queue
         global overlayQueue
+
+        #this overlayOpen is used to swap printing from main window to game overlay.
+        self.overlayOpen = False
+        self.additionalLangs = ''
+        self.targetLanguage = 'english'
+        self.startedOcr = False
+
+        self.ocrProcess = None
+        self.gameOverlayProc = None
+
 
         self.chatLocation = None
         col2 = sg.Column([[sg.Frame('Output:',
@@ -76,15 +87,21 @@ class MainUserInterface:
                         self.additionalLangs += ('+' + key)
 
                 if self.startedOcr == True:
-                    with gui_queue.mutex:
-                        gui_queue.queue.clear()
+                    # with gui_queue.mutex:
+                    #    gui_queue.queue.clear()
+                    self.clear(gui_queue)
                     gui_queue.put('Stop')
                     self.ocrProcess.join()
                     self.ocrProcess.close()
-                    ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs)
+                    self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs)
 
             if event == sg.WIN_CLOSED:
                 gui_queue.put('Stop')
+                if self.startedOcr:
+                    self.startedOcr = False
+                    gui_queue.put('Stop')
+                    self.ocrProcess.join()
+                    self.ocrProcess.close()
                 break
 
             if event == 'Custom Chat Location':
@@ -96,13 +113,17 @@ class MainUserInterface:
                 #  testing launching with defaults
                 if self.chatLocation == None:
                     self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
-                ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs)
+                self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs)
                 self.window['Start'].update(disabled=True)
                 self.startedOcr = True
 
             if event == 'Stop':
-                gui_queue.put('Stop')
-                self.window['Start'].update(disabled=False)
+                if self.startedOcr:
+                    self.startedOcr = False
+                    gui_queue.put('Stop')
+                    self.ocrProcess.join()
+                    self.ocrProcess.close()
+                    self.window['Start'].update(disabled=False)
 
 
 
@@ -118,6 +139,13 @@ class MainUserInterface:
             self.mainPrintOutput()
 
         self.window.close()
+
+    def clear(self,q):
+        try:
+            while True:
+                q.get_nowait()
+        except Empty:
+            pass
 
     def checkIfOverlayClosed(self):
         overlayStoppedFlag = ''

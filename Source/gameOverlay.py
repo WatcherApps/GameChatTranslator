@@ -22,11 +22,11 @@ import multiprocessing as mp
 
 
 class GameOverlayInterface: #rename to gameoverlayinterface
-    global gui_queue
+    global overlayQueue
     global ocr_queue
-    def __init__(self,gQueue,oQueue):
-        self.gui_queue = gQueue
-        self.ocr_queue = oQueue
+    def __init__(self,oQueue,ocrQueue):
+        self.overlayQueue = oQueue
+        self.ocr_queue = ocrQueue
         # global gui_queue
         # global ocr_queue
         sg.theme('DarkBlack') # give our window a spiffy set of colors
@@ -46,7 +46,8 @@ class GameOverlayInterface: #rename to gameoverlayinterface
             # print("test take over")
             # self.window['_OUTPUT_'].Update('')
             if event in (sg.WINDOW_CLOSE_ATTEMPTED_EVENT, 'Exit'):
-                # gui_queue.put('Stop')
+                self.overlayQueue.put('Stop')
+
                 sg.user_settings_set_entry('-location-', self.window.current_location())  # The line of code to save the position before exiting
                 break
             # if event == 'Start':
@@ -82,11 +83,11 @@ class GameOverlayInterface: #rename to gameoverlayinterface
 
 
 def main():
-    global gui_queue
+    global overlayQueue
     global ocr_queue
     ocr_queue = mp.Queue()
-    gui_queue = mp.Queue()
-    gui = GameOverlayInterface(gui_queue,ocr_queue)
+    overlay_Queue = mp.Queue()
+    gui = GameOverlayInterface(overlay_Queue,ocr_queue)
     # startOcr(gui_queue,ocr_queue,(560,595,500,300))
 
 if __name__ == '__main__':

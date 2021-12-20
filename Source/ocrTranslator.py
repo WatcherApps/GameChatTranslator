@@ -5,6 +5,7 @@ import pytesseract
 from deep_translator import GoogleTranslator
 import multiprocessing as mp
 import time
+import re
 
 
 def main():
@@ -13,12 +14,12 @@ def main():
     ocr_queue = mp.Queue()
     gui_queue = mp.Queue()
     ChatCoord = (560, 610, 800, 150)
-    langs = '+rus+kor'
-    startOcr(gui_queue, ocr_queue, ChatCoord,langs)
+    langs = '+rus'
+    startOcr(gui_queue, ocr_queue, ChatCoord,langs,'english')
 
 
-def begin(gui_queue, ocr_queue,coords,langs):
-    ocrProc = mp.Process(target=startOcr, args=(gui_queue,ocr_queue,coords,langs))
+def begin(gui_queue, ocr_queue,coords,langs,targetLanguage):
+    ocrProc = mp.Process(target=startOcr, args=(gui_queue,ocr_queue,coords,langs,targetLanguage))
     ocrProc.start()
     return ocrProc
 
@@ -27,7 +28,7 @@ def cleanup_text(text):
     # using OpenCV
     return "".join([c if ord(c) < 128 else "" for c in text]).strip()
 
-def startOcr(gui_queue, ocr_queue, ChatCoord,langs):
+def startOcr(gui_queue, ocr_queue, ChatCoord,langs,targetLanguage):
     pytesseract.pytesseract.tesseract_cmd = 'C:/Program Files/Tesseract-OCR/tesseract.exe'
 
     x = ChatCoord[0]
@@ -64,10 +65,12 @@ def startOcr(gui_queue, ocr_queue, ChatCoord,langs):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         mask = cv2.inRange(image, color1, color2)
-
+        mask2 = cv2.inRange(image, color3, color4)
+        mask =  cv2.addWeighted(mask, 1, mask2, 0.7, 0.0);
+        cv2.imshow('mask',mask)
         results = cv2.matchTemplate(mask,template,cv2.TM_CCOEFF_NORMED)
         # cv2.imshow('results',results)
-        # cv2.waitKey(40)
+        cv2.waitKey(40)
         loc = np.where( results >= threshold)
         for pt in zip(*loc[::-1]):
             pass
@@ -75,9 +78,14 @@ def startOcr(gui_queue, ocr_queue, ChatCoord,langs):
             # cv2.rectangle(imgcv,(_x1,_y1),(_x2,_y2),(0,255,0),cv2.FILLED
 
         # Extract text
-        text = pytesseract.image_to_string(mask, lang=('eng'+langs), config=' -c page_separator='' --psm 6')
+        text = pytesseract.image_to_string(mask, lang=('eng'+langs), config=' -c page_separator='' --psm 3')
+        # text = cleanup_text(text)
+        # print(f"Text extracted using image_to_string: \n {text}")
+        # rePattern = '\[\n\w?\]'#   [\[\na-z*A-Z*\]]  \w\]
+        # text = re.sub('\[|\n\w?\]','',text,flags=re.MULTILINE)
+        text = re.sub('^.*\]\n?','',text,flags=re.MULTILINE)
         print(f"Text extracted using image_to_string: \n {text}")
-
+        # text = re.MULTILINE()
         # results = reader.readtext(mask,decoder='greedy',width_ths = 1.5)#workers=4,
         # results = reader.readtext(image)
         # outputText = []
@@ -86,15 +94,15 @@ def startOcr(gui_queue, ocr_queue, ChatCoord,langs):
         # for (bbox, text, prob) in results:
         #     text = cleanup_text(text)
         #     # print(text)
-        # if text[0] == '♀':
-        #     continue
-        try:
-            translated = GoogleTranslator(source='auto', target='en').translate(text)
-        except:
-            translated = text
-        #     outputText.append(translated)#+'\n'
-        print(translated)
-        ocr_queue.put(translated)
+
+        if not text == '':
+            try:
+                translated = GoogleTranslator(source='auto', target = targetLanguage).translate(text)
+            except:
+                translated = 'failed'
+            #     outputText.append(translated)#+'\n'
+            print(translated)
+            ocr_queue.put(translated)
         time.sleep(2)
         # print(outputText)
         # i=0

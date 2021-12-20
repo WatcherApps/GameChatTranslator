@@ -15,7 +15,11 @@ import multiprocessing as mp
 # import TesseractRead as tr
 import gameOverlay as go
 import ocrTranslator as ot
+# import SettingsHandler as sh
+# import gameMasks as gm
 from queue import Empty
+from deep_translator import GoogleTranslator
+# import json
 
 
 gui_queue = None
@@ -32,6 +36,7 @@ class MainUserInterface:
     # ocrProcess = None
     # gameOverlayProc = None
 
+
     def __init__(self):
         global gui_queue
         global ocr_queue
@@ -40,7 +45,8 @@ class MainUserInterface:
         #this overlayOpen is used to swap printing from main window to game overlay.
         self.overlayOpen = False
         self.additionalLangs = ''
-        self.targetLanguage = 'english'
+        self.langsList = GoogleTranslator.get_supported_languages()
+        self.targetLanguage = ''
         self.startedOcr = False
 
         self.ocrProcess = None
@@ -55,16 +61,12 @@ class MainUserInterface:
         language_Rkeys = ['rus']#,'kor'
         col1 = sg.Column([
             [sg.Frame('Settings:', [[sg.Text(), sg.Column([[sg.Text('Additional Character Set:')],
-                                    [sg.Checkbox(text = name, default = False, enable_events=True,key=name ,size=(5,1)) for name in language_Rkeys],
-                                    # [ sg.Radio('S. Chinese', 'radio1',enable_events=True, default=True, key='-SCHINESE-', size=(10,1)),
-                                    # sg.Radio('Russian', 'radio1',enable_events=True, key='-RUSSIAN-',  size=(10,1))],
+                                    [sg.Checkbox(text = name, default = sg.user_settings_get_entry(name, False), enable_events=True,key=name ,size=(5,1)) for name in language_Rkeys],
                                     [sg.Text('Target Language:')],
-                                    [sg.Input(key='-LANG-IN-', default_text='english', size=(27,1), disabled=False)],
+                                    [sg.Combo(key='targetLang', values=self.langsList, default_value = sg.user_settings_get_entry('trgtLang', ''),enable_events=True, size=(27,1), disabled=False,readonly=True)],
                                     [sg.Text('Game Profiles:')],
                                     [sg.Listbox(values=['Dota 2', 'Extra Cushions', 'Organic Diet','Blanket', 'Neck Rest'],highlight_background_color='#0083cb', select_mode='single', key='game', size=(25, 5))],
-                                    # [sg.Listbox()]
-                                    # [sg.Multiline(key='-PROFILE-', default_text='Dota 2', size=(25,5),disabled=True)],
-                                    [sg.Button('Load',disabled=True), sg.Button('Delete',disabled=True)],
+                                    [sg.Button('New',disabled=False), sg.Button('Delete',disabled=False)],
                                     ], size=(220,321), pad=(0,0))]])], ], pad=(0,0))
 
         col3 = sg.Column([[sg.Frame('Actions:',
@@ -83,6 +85,7 @@ class MainUserInterface:
             if event in language_Rkeys:
                 self.additionalLangs = ''
                 for key in language_Rkeys:
+                    sg.user_settings_set_entry(key, values[key])
                     if values.get(key):
                         self.additionalLangs += ('+' + key)
 
@@ -93,7 +96,10 @@ class MainUserInterface:
                     gui_queue.put('Stop')
                     self.ocrProcess.join()
                     self.ocrProcess.close()
-                    self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs)
+                    self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage)
+
+            if event == 'targetLang':
+                sg.user_settings_set_entry('trgtLang', values['targetLang'])
 
             if event == sg.WIN_CLOSED:
                 gui_queue.put('Stop')
@@ -109,13 +115,18 @@ class MainUserInterface:
                 self.chatLocation = newCoords
 
             if event == 'Start':
-                self.window['-OUTPUT-'].update("started")
+                self.start(values)
                 #  testing launching with defaults
-                if self.chatLocation == None:
-                    self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
-                self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs)
-                self.window['Start'].update(disabled=True)
-                self.startedOcr = True
+                # self.targetLanguage = values.get('targetLang')
+                # if (self.targetLanguage.lower() in self.langsDict or self.targetLanguage.lower() in self.langsDict.values()):
+                #     self.window['-OUTPUT-'].update("started")
+                #     if self.chatLocation == None:
+                #         self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
+                #     self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage.lower())
+                #     self.window['Start'].update(disabled=True)
+                #     self.startedOcr = True
+                # else:
+                #     sg.popup('Invalid Target Language', '"' + self.targetLanguage +'" is not a valid language, please correct spelling of language.' )
 
             if event == 'Stop':
                 if self.startedOcr:
@@ -139,6 +150,18 @@ class MainUserInterface:
             self.mainPrintOutput()
 
         self.window.close()
+
+    def start(self,values):
+        self.targetLanguage = values.get('targetLang')
+        if (self.targetLanguage.lower() in self.langsList):
+            self.window['-OUTPUT-'].update("started")
+            if self.chatLocation == None:
+                self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
+            self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage.lower())
+            self.window['Start'].update(disabled=True)
+            self.startedOcr = True
+        else:
+            sg.popup('Invalid Target Language', 'Please reselect a target Language. It will be saved for future use.' )
 
     def clear(self,q):
         try:

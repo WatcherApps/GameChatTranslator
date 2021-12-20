@@ -29,7 +29,7 @@ def getCoords():
     # with mss.mss() as sct:
     sct = mss.mss()
     # -1 i think gets primary monitor? 0 is all and then increments to the number they identify as. for example my primary is 2
-    image = np.asarray(sct.grab(sct.monitors[1]))
+    image = np.asarray(sct.grab(sct.monitors[-1]))
     # cv2.imshow("filename",img)
     # cv2.waitKey(0)
 

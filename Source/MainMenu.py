@@ -15,10 +15,11 @@ import multiprocessing as mp
 # import TesseractRead as tr
 import gameOverlay as go
 import ocrTranslator as ot
-# import SettingsHandler as sh
-# import gameMasks as gm
+import profileHandler as ph
+import gameMasks as gm
 from queue import Empty
 from deep_translator import GoogleTranslator
+import threading
 # import json
 
 
@@ -47,6 +48,7 @@ class MainUserInterface:
         self.additionalLangs = ''
         self.langsList = GoogleTranslator.get_supported_languages()
         self.targetLanguage = ''
+        self.profiles = ph.getProfiles()
         self.startedOcr = False
 
         self.ocrProcess = None
@@ -65,12 +67,13 @@ class MainUserInterface:
                                     [sg.Text('Target Language:')],
                                     [sg.Combo(key='targetLang', values=self.langsList, default_value = sg.user_settings_get_entry('trgtLang', ''),enable_events=True, size=(27,1), disabled=False,readonly=True)],
                                     [sg.Text('Game Profiles:')],
-                                    [sg.Listbox(values=['Dota 2', 'Extra Cushions', 'Organic Diet','Blanket', 'Neck Rest'],highlight_background_color='#0083cb', select_mode='single', key='game', size=(25, 5))],
+
+                                    [sg.Listbox(values=[gameName.get('Profile') for gameName in self.profiles], highlight_background_color='#0083cb',enable_events = True, select_mode='single', key='game', size=(25, 5))], #default_values = sg.user_settings_get_entry('defaultProfile', ''),
                                     [sg.Button('New',disabled=False), sg.Button('Delete',disabled=False)],
                                     ], size=(220,321), pad=(0,0))]])], ], pad=(0,0))
 
         col3 = sg.Column([[sg.Frame('Actions:',
-                                    [[sg.Column([[sg.Button('Start'), sg.Button('Stop'), sg.Button('Custom Chat Location'),sg.Button('Launch Game Overlay'), ]],
+                                    [[sg.Column([[sg.Button('Start'), sg.Button('Stop'),sg.Button('Launch Game Overlay'), ]],
                                                 size=(460,45), pad=(0,0))]])]], pad=(0,0))
 
         # The final layout, 2 columns with one column below.
@@ -78,11 +81,13 @@ class MainUserInterface:
                 [col3]]
 
         self.window = sg.Window('Game Chat Translator', self.layout)
-
+        self.window.read(timeout=10)
+        self.window.write_event_value('loadAdditionalLangs', None)
+        # self.window.write_event_value('game', None)
         while True:
             event, values = self.window.read(timeout=10, timeout_key='timeout')
 
-            if event in language_Rkeys:
+            if event in language_Rkeys or event == 'loadAdditionalLangs':
                 self.additionalLangs = ''
                 for key in language_Rkeys:
                     sg.user_settings_set_entry(key, values[key])
@@ -90,8 +95,7 @@ class MainUserInterface:
                         self.additionalLangs += ('+' + key)
 
                 if self.startedOcr == True:
-                    # with gui_queue.mutex:
-                    #    gui_queue.queue.clear()
+
                     self.clear(gui_queue)
                     gui_queue.put('Stop')
                     self.ocrProcess.join()
@@ -101,6 +105,21 @@ class MainUserInterface:
             if event == 'targetLang':
                 sg.user_settings_set_entry('trgtLang', values['targetLang'])
 
+            if event == 'New':
+                self.newProfilePopup(self.window)
+
+            if event == 'game':
+                try:
+                    # sg.user_settings_set_entry('defaultProfile', values['game'])
+                    profile=ph.getProfile(values['game'][0],self.profiles)
+                    self.chatLocation = profile.get('ChatLoc')
+                except:
+                    pass
+                # self.game
+
+
+
+
             if event == sg.WIN_CLOSED:
                 gui_queue.put('Stop')
                 if self.startedOcr:
@@ -109,10 +128,6 @@ class MainUserInterface:
                     self.ocrProcess.join()
                     self.ocrProcess.close()
                 break
-
-            if event == 'Custom Chat Location':
-                newCoords = bsc.getCoords()
-                self.chatLocation = newCoords
 
             if event == 'Start':
                 self.start(values)
@@ -136,8 +151,6 @@ class MainUserInterface:
                     self.ocrProcess.close()
                     self.window['Start'].update(disabled=False)
 
-
-
             if event == 'Launch Game Overlay':
                 self.window['-OUTPUT-'].update("Switched output to GameOverlay")
                 self.overlayOpen = True
@@ -145,21 +158,76 @@ class MainUserInterface:
                 self.gameOverlayProc = mp.Process(target=go.GameOverlayInterface, args=(overlayQueue,ocr_queue))
                 self.gameOverlayProc.start()
 
+            if event == 'UpdateProfiles':
+                self.profiles = ph.getProfiles()
+                self.window['game'].update([gameName.get('Profile') for gameName in self.profiles])
+                # print('test')
+
+            if event == 'Delete':
+                # self.profiles[:] = [profile for profile in self.profiles if profile.get('Profile') != values['game']]
+                if values.get('game'):
+                    confirm = sg.popup_ok_cancel('Confirm Delete','Are you sure you want to delete the ' +str(values.get('game')[0])+' profile?')
+                    if confirm == 'OK':
+                        self.profiles[:] = [p for p in self.profiles if p.get('Profile') != values.get('game')[0]]
+                        ph.saveProfiles(self.profiles)
+                        self.window['game'].update([gameName.get('Profile') for gameName in self.profiles])
+
+
             self.checkIfOverlayClosed()
 
             self.mainPrintOutput()
 
         self.window.close()
 
+    def newProfilePopup(self,window):
+        title = "Create A New Game Profile"
+        layout = [
+            [sg.Text('Profile Name:')],
+            [sg.Input(key='ProfileName')],
+            [sg.Text('Select Game:')],
+            [sg.Combo(values = gm.getGames(),readonly=True,key='GameName')],
+            [sg.Button('Custom Chat Location')],
+            [sg.Button('Save'),sg.Button('Cancel')]
+        ]
+        win = sg.Window(title, layout, modal=True, grab_anywhere=True, enable_close_attempted_event=False,no_titlebar=False)
+        while True:
+            event, values = win.read()
+            if event == 'Cancel' or event == sg.WIN_CLOSED:
+                break
+
+            if event == 'Custom Chat Location':
+                newCoords = bsc.getCoords()
+                self.chatLocation = newCoords
+
+            if event == 'Save':
+                if not any(p.get('Profile', None) == values['ProfileName'] for p in self.profiles):
+                # if values['ProfileName'] not in self.profiles.values():
+                    self.profiles.append({
+                        "Profile": values['ProfileName'],
+                        "Game": values['GameName'],
+                        "ChatLoc": self.chatLocation
+                    })
+                    ph.saveProfiles(self.profiles)
+                    break
+                else:
+                    sg.popup('Invalid Profile Name', 'Profile name exists, Please enter something unique.' )
+
+        win.close()
+        window.write_event_value('UpdateProfiles', None)
+
     def start(self,values):
         self.targetLanguage = values.get('targetLang')
         if (self.targetLanguage.lower() in self.langsList):
             self.window['-OUTPUT-'].update("started")
             if self.chatLocation == None:
-                self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
-            self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage.lower())
-            self.window['Start'].update(disabled=True)
-            self.startedOcr = True
+                # self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
+
+                sg.popup('Profile Not Selected', 'Please create a profile or select one to start.' )
+            else:
+                self.window['-OUTPUT-'].update("started")
+                self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage.lower())
+                self.window['Start'].update(disabled=True)
+                self.startedOcr = True
         else:
             sg.popup('Invalid Target Language', 'Please reselect a target Language. It will be saved for future use.' )
 

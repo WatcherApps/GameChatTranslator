@@ -67,7 +67,7 @@ def startOcr(gui_queue, ocr_queue, ChatCoord,langs,targetLanguage):
         mask = cv2.inRange(image, color1, color2)
         mask2 = cv2.inRange(image, color3, color4)
         mask =  cv2.addWeighted(mask, 1, mask2, 0.7, 0.0);
-        cv2.imshow('mask',mask)
+        # cv2.imshow('mask',mask)
         results = cv2.matchTemplate(mask,template,cv2.TM_CCOEFF_NORMED)
         # cv2.imshow('results',results)
         cv2.waitKey(40)

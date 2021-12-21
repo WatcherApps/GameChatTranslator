@@ -53,7 +53,7 @@ def getCoords():
     def cropAreaOfInterest(x,y,x2,y2,image):
         return image[y:y2, x:x2]
 
-    bbox = cv2.selectROI("Drag Box Around Chat",image,False)
+    bbox = cv2.selectROI("Drag Box Around Chat and press enter or c to cancel",image,False)
     print(bbox)
     # bbox returns x,y,w,h
     # use area of interest function to get starting and ending x,y coords for image
@@ -64,7 +64,7 @@ def getCoords():
     # cropImg2 = cropAreaOfInterest(int(x*ratioW),int(y*ratioH),int(x2*ratioW),int(y2*ratioH),image2)
     # cv2.imshow('cropImg2', cropImg2)
     # cv2.waitKey(1)
-    cv2.destroyWindow("Drag Box Around Chat")
+    cv2.destroyWindow("Drag Box Around Chat and press enter or c to cancel")
     # return (int(x*ratioW),int(y*ratioH),int(x2*ratioW),int(y2*ratioH))
     # using mss as our new screenshot tool i think i can just return the bbox coords after making them 1.5x bigger
     return (int(bbox[0]*ratio),int(bbox[1]*ratio),int(bbox[2]*ratio),int(bbox[3]*ratio))

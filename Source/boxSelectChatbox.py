@@ -4,17 +4,7 @@ from PIL import ImageGrab
 import mss
 
 # Soloution to the hard coding problem is to just hardcode a ratio in which to resize display and then resize back to full!
-#
-# sct = mss.mss()
-# image = np.asarray(sct.grab(sct.monitors[-1]))
-# (origH, origW) = image.shape[:2]
-# ratioW = 1.5#origW / newW
-# ratioH = 1.5#origH / newH
-# newW = origH/ratioW
-# newH = origW/ratioH
-# image = cv2.resize(image, (int(newH), int(newW)))
-# cv2.imshow("image",image)
-# cv2.waitKey(0)
+
 def getCoords():
 
     sct = mss.mss()

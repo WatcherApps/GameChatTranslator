@@ -1,42 +1,17 @@
-#  todo-
-#       update and restart reader with it's new settings when ever settings are changed on the main menu via event calls
-#       save new game profiles (coords from custom chatbox)
-#       save and load profiles
-#       save the profile as a key value pair. We can display the key as Aoe4 value :x y x2y2 or something
 #       I could use the custom box tool to also have the user select the colour of the text so we can run custom threshholding mask for anything but that colour.
 #       option to use custom mask or default mask?
-#       ***fix box select not matching primary monitor***
-#       https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Combo_Filechooser_With_History_And_Clear.py
 
 import PySimpleGUI as sg
-# import MaskedMpGood as mmg
 import boxSelectChatbox as bsc
 import multiprocessing as mp
-# import TesseractRead as tr
 import gameOverlay as go
 import ocrTranslator as ot
 import profileHandler as ph
 import gameMasks as gm
 from queue import Empty
 from deep_translator import GoogleTranslator
-# import threading
-# import json
-
-
-# gui_queue = None
-# ocr_queue = None
-# overlayQueue = None
 
 class MainUserInterface:
-    # #this overlayOpen is used to swap printing from main window to game overlay.
-    # overlayOpen = False
-    # additionalLangs = ''
-    # targetLanguage = 'english'
-    # startedOcr = False
-
-    # ocrProcess = None
-    # gameOverlayProc = None
-
 
     def __init__(self):
         global gui_queue
@@ -52,12 +27,10 @@ class MainUserInterface:
         self.selectedGame = ''
         self.profiles = ph.getProfiles()
         self.startedOcr = False
-
         self.ocrProcess = None
         self.gameOverlayProc = None
-
-
         self.chatLocation = None
+
         col2 = sg.Column([[sg.Frame('Output:',
         [[sg.Column([[sg.Output(font=('Helvetica', '8','bold'), text_color = 'Black', key = '-OUTPUT-',background_color= 'White',size=(27,21)),]],size=(200,315))]])]],pad=(0,0))
 
@@ -85,7 +58,7 @@ class MainUserInterface:
         self.window = sg.Window('Game Chat Translator', self.layout)
         self.window.read(timeout=10)
         self.window.write_event_value('loadAdditionalLangs', None)
-        # self.window.write_event_value('GameName', None)
+
         while True:
             event, values = self.window.read(timeout=10, timeout_key='timeout')
 
@@ -117,64 +90,26 @@ class MainUserInterface:
                     self.selectedGame = profile.get('Game')
                 except:
                     pass
-                # self.game
-
-
-
 
             if event == sg.WIN_CLOSED:
                 gui_queue.put('Stop')
                 if self.startedOcr:
                     self.stopOcr()
-                    # this needs to be in the function for stopOcr() as this section of code is written a few times
-                    # self.startedOcr = False
-                    # gui_queue.put('Stop')
-                    # self.ocrProcess.join()
-                    # self.ocrProcess.close()
 
                 if self.overlayOpen:
                     self.closeGameOverlay()
-                    # Make this a function for closeGameOverlay()
-                    # self.overlayOpen = False
-                    # closeOverlayQueue.put('Stop')
-                    # self.gameOverlayProc.join()
-                    # self.gameOverlayProc.close()
-                    # self.window['Launch Game Overlay'].update(disabled=False)
 
                 break
 
             if event == 'Start':
                 self.start(values)
-                #  testing launching with defaults
-                # self.targetLanguage = values.get('targetLang')
-                # if (self.targetLanguage.lower() in self.langsDict or self.targetLanguage.lower() in self.langsDict.values()):
-                #     self.window['-OUTPUT-'].update("started")
-                #     if self.chatLocation == None:
-                #         self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
-                #     self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage.lower())
-                #     self.window['Start'].update(disabled=True)
-                #     self.startedOcr = True
-                # else:
-                #     sg.popup('Invalid Target Language', '"' + self.targetLanguage +'" is not a valid language, please correct spelling of language.' )
 
             if event == 'Stop':
                 if self.startedOcr:
                     self.stopOcr()
-                    # Make this a function for stopOcr()
-                    # self.startedOcr = False
-                    # gui_queue.put('Stop')
-                    # self.ocrProcess.join()
-                    # self.ocrProcess.close()
-                    # self.window['Start'].update(disabled=False)
 
                 if self.overlayOpen:
                     self.closeGameOverlay()
-                    # # Make this a function for closeGameOverlay()
-                    # self.overlayOpen = False
-                    # closeOverlayQueue.put('Stop')
-                    # self.gameOverlayProc.join()
-                    # self.gameOverlayProc.close()
-                    # self.window['Launch Game Overlay'].update(disabled=False)
 
             if event == 'Launch Game Overlay':
                 self.window['-OUTPUT-'].update("Switched output to GameOverlay")
@@ -186,17 +121,14 @@ class MainUserInterface:
             if event == 'UpdateProfiles':
                 self.profiles = ph.getProfiles()
                 self.window['selectedGame'].update([gameName.get('Profile') for gameName in self.profiles])
-                # print('test')
 
             if event == 'Delete':
-                # self.profiles[:] = [profile for profile in self.profiles if profile.get('Profile') != values['GameName']]
                 if values.get('selectedGame'):
                     confirm = sg.popup_ok_cancel('Confirm Delete','Are you sure you want to delete the ' +str(values.get('selectedGame')[0])+' profile?')
                     if confirm == 'OK':
                         self.profiles[:] = [p for p in self.profiles if p.get('Profile') != values.get('selectedGame')[0]]
                         ph.saveProfiles(self.profiles)
                         self.window['selectedGame'].update([gameName.get('Profile') for gameName in self.profiles])
-
 
             self.checkIfOverlayClosed()
 
@@ -240,7 +172,6 @@ class MainUserInterface:
 
             if event == 'Save':
                 if not any(p.get('Profile', None) == values['ProfileName'] for p in self.profiles):
-                # if values['ProfileName'] not in self.profiles.values():
                     self.profiles.append({
                         "Profile": values['ProfileName'],
                         "Game": values['GameName'],
@@ -260,7 +191,6 @@ class MainUserInterface:
             self.window['-OUTPUT-'].update("started")
             if self.chatLocation == None:
                 # self.chatLocation = (570, 610, 800, 150) #(377, 405, 530, 103)
-
                 sg.popup('Profile Not Selected', 'Please create a profile or select one to start.' )
             else:
                 self.window['-OUTPUT-'].update("started")

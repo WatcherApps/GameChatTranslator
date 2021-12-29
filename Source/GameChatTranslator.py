@@ -97,7 +97,6 @@ class MainUserInterface:
                         self.additionalLangs += ('+' + key)
 
                 if self.startedOcr == True:
-
                     self.clear(gui_queue)
                     gui_queue.put('Stop')
                     self.ocrProcess.join()
@@ -126,19 +125,22 @@ class MainUserInterface:
             if event == sg.WIN_CLOSED:
                 gui_queue.put('Stop')
                 if self.startedOcr:
+                    self.stopOcr()
                     # this needs to be in the function for stopOcr() as this section of code is written a few times
-                    self.startedOcr = False
-                    gui_queue.put('Stop')
-                    self.ocrProcess.join()
-                    self.ocrProcess.close()
+                    # self.startedOcr = False
+                    # gui_queue.put('Stop')
+                    # self.ocrProcess.join()
+                    # self.ocrProcess.close()
 
                 if self.overlayOpen:
+                    self.closeGameOverlay()
                     # Make this a function for closeGameOverlay()
-                    self.overlayOpen = False
-                    closeOverlayQueue.put('Stop')
-                    self.gameOverlayProc.join()
-                    self.gameOverlayProc.close()
-                    self.window['Launch Game Overlay'].update(disabled=False)
+                    # self.overlayOpen = False
+                    # closeOverlayQueue.put('Stop')
+                    # self.gameOverlayProc.join()
+                    # self.gameOverlayProc.close()
+                    # self.window['Launch Game Overlay'].update(disabled=False)
+
                 break
 
             if event == 'Start':
@@ -157,12 +159,13 @@ class MainUserInterface:
 
             if event == 'Stop':
                 if self.startedOcr:
+                    self.stopOcr()
                     # Make this a function for stopOcr()
-                    self.startedOcr = False
-                    gui_queue.put('Stop')
-                    self.ocrProcess.join()
-                    self.ocrProcess.close()
-                    self.window['Start'].update(disabled=False)
+                    # self.startedOcr = False
+                    # gui_queue.put('Stop')
+                    # self.ocrProcess.join()
+                    # self.ocrProcess.close()
+                    # self.window['Start'].update(disabled=False)
 
                 if self.overlayOpen:
                     self.closeGameOverlay()
@@ -200,6 +203,13 @@ class MainUserInterface:
             self.mainPrintOutput()
 
         self.window.close()
+
+    def stopOcr(self):
+        self.startedOcr = False
+        gui_queue.put('Stop')
+        self.ocrProcess.join()
+        self.ocrProcess.close()
+        self.window['Start'].update(disabled=False)
 
     def closeGameOverlay(self):
         self.overlayOpen = False

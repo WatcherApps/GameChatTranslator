@@ -1,6 +1,6 @@
 import numpy as np
 import cv2 as cv2
-from PIL import ImageGrab
+# from PIL import ImageGrab
 import mss
 
 # Soloution to the hard coding problem is to just hardcode a ratio in which to resize display and then resize back to full!

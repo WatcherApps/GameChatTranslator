@@ -19,13 +19,13 @@ import profileHandler as ph
 import gameMasks as gm
 from queue import Empty
 from deep_translator import GoogleTranslator
-import threading
+# import threading
 # import json
 
 
-gui_queue = None
-ocr_queue = None
-overlayQueue = None
+# gui_queue = None
+# ocr_queue = None
+# overlayQueue = None
 
 class MainUserInterface:
     # #this overlayOpen is used to swap printing from main window to game overlay.
@@ -42,12 +42,14 @@ class MainUserInterface:
         global gui_queue
         global ocr_queue
         global overlayQueue
+        global closeOverlayQueue
 
         #this overlayOpen is used to swap printing from main window to game overlay.
         self.overlayOpen = False
         self.additionalLangs = ''
         self.langsList = GoogleTranslator.get_supported_languages()
         self.targetLanguage = ''
+        self.selectedGame = ''
         self.profiles = ph.getProfiles()
         self.startedOcr = False
 
@@ -68,7 +70,7 @@ class MainUserInterface:
                                     [sg.Combo(key='targetLang', values=self.langsList, default_value = sg.user_settings_get_entry('trgtLang', ''),enable_events=True, size=(27,1), disabled=False,readonly=True)],
                                     [sg.Text('Game Profiles:')],
 
-                                    [sg.Listbox(values=[gameName.get('Profile') for gameName in self.profiles], highlight_background_color='#0083cb',enable_events = True, select_mode='single', key='game', size=(25, 5))], #default_values = sg.user_settings_get_entry('defaultProfile', ''),
+                                    [sg.Listbox(values=[gameName.get('Profile') for gameName in self.profiles], default_values = [sg.user_settings_get_entry('defaultProfile', ''),],highlight_background_color='#0083cb',enable_events = True, select_mode='single', key='selectedGame', size=(25, 5))],
                                     [sg.Button('New',disabled=False), sg.Button('Delete',disabled=False)],
                                     ], size=(220,321), pad=(0,0))]])], ], pad=(0,0))
 
@@ -83,7 +85,7 @@ class MainUserInterface:
         self.window = sg.Window('Game Chat Translator', self.layout)
         self.window.read(timeout=10)
         self.window.write_event_value('loadAdditionalLangs', None)
-        # self.window.write_event_value('game', None)
+        # self.window.write_event_value('GameName', None)
         while True:
             event, values = self.window.read(timeout=10, timeout_key='timeout')
 
@@ -100,7 +102,7 @@ class MainUserInterface:
                     gui_queue.put('Stop')
                     self.ocrProcess.join()
                     self.ocrProcess.close()
-                    self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage)
+                    self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage,self.selectedGame)
 
             if event == 'targetLang':
                 sg.user_settings_set_entry('trgtLang', values['targetLang'])
@@ -108,11 +110,12 @@ class MainUserInterface:
             if event == 'New':
                 self.newProfilePopup(self.window)
 
-            if event == 'game':
+            if event == 'selectedGame':
                 try:
-                    # sg.user_settings_set_entry('defaultProfile', values['game'])
-                    profile=ph.getProfile(values['game'][0],self.profiles)
+                    sg.user_settings_set_entry('defaultProfile', values['selectedGame'])
+                    profile=ph.getProfile(values['selectedGame'][0],self.profiles)
                     self.chatLocation = profile.get('ChatLoc')
+                    self.selectedGame = profile.get('Game')
                 except:
                     pass
                 # self.game
@@ -123,10 +126,19 @@ class MainUserInterface:
             if event == sg.WIN_CLOSED:
                 gui_queue.put('Stop')
                 if self.startedOcr:
+                    # this needs to be in the function for stopOcr() as this section of code is written a few times
                     self.startedOcr = False
                     gui_queue.put('Stop')
                     self.ocrProcess.join()
                     self.ocrProcess.close()
+
+                if self.overlayOpen:
+                    # Make this a function for closeGameOverlay()
+                    self.overlayOpen = False
+                    closeOverlayQueue.put('Stop')
+                    self.gameOverlayProc.join()
+                    self.gameOverlayProc.close()
+                    self.window['Launch Game Overlay'].update(disabled=False)
                 break
 
             if event == 'Start':
@@ -145,32 +157,42 @@ class MainUserInterface:
 
             if event == 'Stop':
                 if self.startedOcr:
+                    # Make this a function for stopOcr()
                     self.startedOcr = False
                     gui_queue.put('Stop')
                     self.ocrProcess.join()
                     self.ocrProcess.close()
                     self.window['Start'].update(disabled=False)
 
+                if self.overlayOpen:
+                    self.closeGameOverlay()
+                    # # Make this a function for closeGameOverlay()
+                    # self.overlayOpen = False
+                    # closeOverlayQueue.put('Stop')
+                    # self.gameOverlayProc.join()
+                    # self.gameOverlayProc.close()
+                    # self.window['Launch Game Overlay'].update(disabled=False)
+
             if event == 'Launch Game Overlay':
                 self.window['-OUTPUT-'].update("Switched output to GameOverlay")
                 self.overlayOpen = True
                 self.window['Launch Game Overlay'].update(disabled=True)
-                self.gameOverlayProc = mp.Process(target=go.GameOverlayInterface, args=(overlayQueue,ocr_queue))
+                self.gameOverlayProc = mp.Process(target=go.GameOverlayInterface, args=(overlayQueue,ocr_queue,closeOverlayQueue))
                 self.gameOverlayProc.start()
 
             if event == 'UpdateProfiles':
                 self.profiles = ph.getProfiles()
-                self.window['game'].update([gameName.get('Profile') for gameName in self.profiles])
+                self.window['selectedGame'].update([gameName.get('Profile') for gameName in self.profiles])
                 # print('test')
 
             if event == 'Delete':
-                # self.profiles[:] = [profile for profile in self.profiles if profile.get('Profile') != values['game']]
-                if values.get('game'):
-                    confirm = sg.popup_ok_cancel('Confirm Delete','Are you sure you want to delete the ' +str(values.get('game')[0])+' profile?')
+                # self.profiles[:] = [profile for profile in self.profiles if profile.get('Profile') != values['GameName']]
+                if values.get('selectedGame'):
+                    confirm = sg.popup_ok_cancel('Confirm Delete','Are you sure you want to delete the ' +str(values.get('selectedGame')[0])+' profile?')
                     if confirm == 'OK':
-                        self.profiles[:] = [p for p in self.profiles if p.get('Profile') != values.get('game')[0]]
+                        self.profiles[:] = [p for p in self.profiles if p.get('Profile') != values.get('selectedGame')[0]]
                         ph.saveProfiles(self.profiles)
-                        self.window['game'].update([gameName.get('Profile') for gameName in self.profiles])
+                        self.window['selectedGame'].update([gameName.get('Profile') for gameName in self.profiles])
 
 
             self.checkIfOverlayClosed()
@@ -178,6 +200,13 @@ class MainUserInterface:
             self.mainPrintOutput()
 
         self.window.close()
+
+    def closeGameOverlay(self):
+        self.overlayOpen = False
+        closeOverlayQueue.put('Stop')
+        self.gameOverlayProc.join()
+        self.gameOverlayProc.close()
+        self.window['Launch Game Overlay'].update(disabled=False)
 
     def newProfilePopup(self,window):
         title = "Create A New Game Profile"
@@ -225,7 +254,7 @@ class MainUserInterface:
                 sg.popup('Profile Not Selected', 'Please create a profile or select one to start.' )
             else:
                 self.window['-OUTPUT-'].update("started")
-                self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage.lower())
+                self.ocrProcess = ot.begin(gui_queue, ocr_queue,self.chatLocation,self.additionalLangs,self.targetLanguage.lower(),self.selectedGame)
                 self.window['Start'].update(disabled=True)
                 self.startedOcr = True
         else:
@@ -268,11 +297,15 @@ def main():
     global gui_queue
     global ocr_queue
     global overlayQueue
+    global closeOverlayQueue
 
     ocr_queue = mp.Queue()
     gui_queue = mp.Queue()
     overlayQueue = mp.Queue()
+    closeOverlayQueue = mp.Queue()
     mainGui = MainUserInterface()
 
 if __name__ == '__main__':
+    # pyinstallerTest
+    mp.freeze_support()
     main()

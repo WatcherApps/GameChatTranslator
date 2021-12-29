@@ -24,9 +24,11 @@ import multiprocessing as mp
 class GameOverlayInterface: #rename to gameoverlayinterface
     global overlayQueue
     global ocr_queue
-    def __init__(self,oQueue,ocrQueue):
+    global closeOverlayQueue
+    def __init__(self,oQueue,ocrQueue,closeQueue):
         self.overlayQueue = oQueue
         self.ocr_queue = ocrQueue
+        self.closeOverlayQueue = closeQueue
         # global gui_queue
         # global ocr_queue
         sg.theme('DarkBlack') # give our window a spiffy set of colors
@@ -39,7 +41,7 @@ class GameOverlayInterface: #rename to gameoverlayinterface
                     transparent_color='grey',alpha_channel=1,titlebar_background_color='black', no_titlebar=True,grab_anywhere=True,keep_on_top=True,enable_close_attempted_event=True, location=sg.user_settings_get_entry('-location-', (None, None)))
 
         while True:  # Event Loop
-            event, values = self.window.read(timeout=10, timeout_key='timeout')#,timeout_key='timeout'timeout=500
+            event, values = self.window.read(timeout=100, timeout_key='timeout')#,timeout_key='timeout'timeout=500
             # self.window.KeepOnTop = True
             self.window.bring_to_front()
             # print(event, values)
@@ -56,6 +58,8 @@ class GameOverlayInterface: #rename to gameoverlayinterface
             #     begin(gui_queue, ocr_queue)
             self.printOutput()
 
+            if self.checkForStop():
+                break
             # print('realtest')
             # self.window.refresh()
             # self.window.TKroot.after(1000, self.printOutput)
@@ -78,6 +82,17 @@ class GameOverlayInterface: #rename to gameoverlayinterface
         # self.window.refresh()
         # self.window.TKroot.after(1000, self.printOutput)
 
+    def checkForStop(self):
+        stop = False
+        try:
+            message = self.closeOverlayQueue.get_nowait()    # see if something has been posted to Queue
+        except Exception as e:                     # get_nowait() will get exception when Queue is empty
+            message = None                      # nothing in queue so do nothing
+        if message:
+            print(f'Got a queue message {message}!!!')
+            # break
+            stop = True
+        return stop
 
 
 
@@ -87,7 +102,9 @@ def main():
     global ocr_queue
     ocr_queue = mp.Queue()
     overlay_Queue = mp.Queue()
-    gui = GameOverlayInterface(overlay_Queue,ocr_queue)
+    global closeOverlayQueue
+    closeOverlayQueue = mp.Queue()
+    gui = GameOverlayInterface(overlay_Queue,ocr_queue,closeOverlayQueue)
     # startOcr(gui_queue,ocr_queue,(560,595,500,300))
 
 if __name__ == '__main__':

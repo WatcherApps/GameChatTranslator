@@ -83,7 +83,7 @@ def startOcr(gui_queue, ocr_queue, ChatCoord,langs,targetLanguage,selectedGame):
         #     # cv2.rectangle(imgcv,(_x1,_y1),(_x2,_y2),(0,255,0),cv2.FILLED
 
         # Extract text ~mask inverts mask
-        text = pytesseract.image_to_string(mask, lang=('eng'+langs), config=' -c page_separator='' --psm 3')
+        text = pytesseract.image_to_string(mask, lang=('eng'+langs), config=' -c page_separator='' --psm 6')
         # text = cleanup_text(text)
         # print(f"Text extracted using image_to_string: \n {text}")
         # rePattern = '\[\n\w?\]'#   [\[\na-z*A-Z*\]]  \w\]

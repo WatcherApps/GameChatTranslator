@@ -34,8 +34,20 @@ class GameOverlayInterface: #rename to gameoverlayinterface
         sg.theme('DarkBlack') # give our window a spiffy set of colors
 
         layout = [
-                [sg.Output(size=(50, 10), font=('Helvetica', '8','bold'), text_color = 'White', key = '_OUTPUT_',background_color= 'grey')],
-                [sg.Button('Exit')]]#sg.Button('Start'),
+                [sg.Text(size=(50,10),font=('Helvetica', '8','bold'), text_color = 'White', key = '_OUTPUT_',background_color= 'grey')],
+                # [sg.Output(size=(50, 10), font=('Helvetica', '8','bold'), text_color = 'White', key = '_OUTPUT_',background_color= 'grey')],
+                [sg.Image('./118639_move_icon.png', size=(32, 30),background_color='lightgrey'),sg.Button('Exit')]
+                ]
+        # frame = [sg.Frame('Chat Output', [sg.Text(size=(50,10),font=('Helvetica', '8','bold'), text_color = 'White', key = '_OUTPUT_',background_color= 'grey')],),]
+
+        col1 = sg.Column([[sg.Frame('Chat Output:', [
+            [sg.Column([
+                [sg.Text(size=(40,10),font=('Helvetica', '8','bold'), text_color = 'White', key = '_OUTPUT_',background_color= 'grey'),]
+            ],background_color='grey')]#,size=(200,315)
+        ],background_color='grey')]],background_color='grey',pad=(0,0))
+
+        layout = [[col1,sg.Image('./118639_move_icon.png', size=(32, 30),background_color='lightgrey')],
+                [sg.Image('./118639_move_icon.png', size=(32, 30),background_color='lightgrey'),sg.Button('Exit')]]
 
         self.window = sg.Window('Chat window', layout, font=('Helvetica', ' 13','bold'),background_color='grey', default_button_element_size=(1,1), use_default_focus=False,
                     transparent_color='grey',alpha_channel=1,titlebar_background_color='black', no_titlebar=True,grab_anywhere=True,keep_on_top=True,enable_close_attempted_event=True, location=sg.user_settings_get_entry('-location-', (None, None)))

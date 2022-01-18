@@ -107,9 +107,11 @@ class MainUserInterface:
             if event == 'Stop':
                 if self.startedOcr:
                     self.stopOcr()
+                    self.window['Start'].update(disabled=False)
 
                 if self.overlayOpen:
                     self.closeGameOverlay()
+                    self.window['Launch Game Overlay'].update(disabled=False)
 
             if event == 'Launch Game Overlay':
                 self.window['-OUTPUT-'].update("Switched output to GameOverlay")
@@ -141,14 +143,15 @@ class MainUserInterface:
         gui_queue.put('Stop')
         self.ocrProcess.join()
         self.ocrProcess.close()
-        self.window['Start'].update(disabled=False)
+
+
 
     def closeGameOverlay(self):
         self.overlayOpen = False
         closeOverlayQueue.put('Stop')
         self.gameOverlayProc.join()
         self.gameOverlayProc.close()
-        self.window['Launch Game Overlay'].update(disabled=False)
+
 
     def newProfilePopup(self,window):
         title = "Create A New Game Profile"

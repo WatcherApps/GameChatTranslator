@@ -1,6 +1,6 @@
 # GameChatTranslator
 
-Hey everyone. In a silly attempt to try and bridge the gap between languages and reduce toxicity, I've created a tool to read the in-game chat, translate it, and display it in an overlay that has the ability to be clicked through. This isn't interacting with Dota or any game in any way. It's just taking screenshots of the desktop and reading an area of it. The overlay is a python-created window that is click-through able and the overlay can still be moved while playing the game, but the grabbing area is currently very small.
+Hey everyone. In an attempt to try and bridge the gap between languages and reduce toxicity, I've created a tool to read the in-game chat, translate it, and display it in an overlay that has the ability to be clicked through. This isn't interacting with Dota or any game in any way. It's just taking screenshots of the desktop and reading an area of it. The overlay is a python-created window that is click-through enabled and the overlay can still be moved while playing the game, but the window grabbing area is currently very small.
 
 
 Select if you want to run with cryillic (rus) char set.

@@ -54,7 +54,6 @@ Future development: The project aims to improve the user interface, scalability,
 
 -----------
 # Installation
-## Prerequisites
 
 pip install deep-translator
 

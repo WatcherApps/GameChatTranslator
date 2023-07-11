@@ -44,7 +44,7 @@ https://www.reddit.com/r/DotA2/comments/s6ygu6/ive_created_a_ingame_chat_transla
 
 ------------
 
-#Features
+# Features
 
 Real-time translation: The tool instantly translates in-game chat messages into the user's preferred language.
 Overlay display: Translated messages are displayed in an overlay that can be clicked through, allowing seamless integration with the gameplay experience.
@@ -53,8 +53,8 @@ Wide language support: It can translate chat messages into any language supporte
 Future development: The project aims to improve the user interface, scalability, and compatibility with different platforms, as well as expanding language support.
 
 -----------
-#Installation
-##Prerequisites
+# Installation
+## Prerequisites
 
 pip install deep-translator
 

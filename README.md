@@ -25,8 +25,7 @@ To move the box try and click and drag the window by the text that says "Chat Ou
 Demo video. Sorry for the length.
 https://www.youtube.com/watch?v=Gk9X52-XJ8c
 
-Reddit post contains gifs.
-https://www.reddit.com/r/DotA2/comments/s6ygu6/ive_created_a_ingame_chat_translator_tool/
+
 
 
 
